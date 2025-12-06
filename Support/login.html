@@ -92,7 +92,7 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
     const username = document.getElementById("username").value.trim();
     const password = document.getElementById("password").value.trim();
 
-    const res = await fetch("https://scalelike-habilimental-braiden.ngrok-free.dev/api/users/login", {
+    const res = await fetch("https://scalelike-habilimental-braiden.ngrok-free.dev/project-0.0.1-SNAPSHOT/api/users/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
@@ -113,4 +113,5 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
 
 </body>
 </html>
+
 
