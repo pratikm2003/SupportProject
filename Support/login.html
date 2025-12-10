@@ -93,13 +93,19 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
     const password = document.getElementById("password").value.trim();
 
     const res = await fetch(
-      "http://115.246.36.27:8080/project-0.0.1-SNAPSHOT/api/users/login",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
-      }
-    );
+  "http://115.246.36.27:8080/project-0.0.1-SNAPSHOT/api/users/login",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    },
+    body: JSON.stringify({
+      username: username,  // adjust after seeing backend
+      password: password
+    })
+  }
+);
 
     const data = await res.json();   // FIXED ✔
 
@@ -113,6 +119,7 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
 
 </body>
 </html>
+
 
 
 
