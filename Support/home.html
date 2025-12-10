@@ -6,12 +6,9 @@
   <title>Banking Support - Home</title>
   <link rel="stylesheet" href="style.css"/>
   <link rel="stylesheet" href="home.css"/>
- 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-
-  
 </head>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
 <body class="home-body">
 
@@ -25,7 +22,6 @@ if (!localStorage.getItem("loggedUser")) {
     <h2 class="logo">Banking Support</h2>
     <nav>
       <ul>
-        <li><a href="designdash.html">Dashboard</a></li>
         <li><a href="home.html">Home</a></li>
         <li><a href="#" onclick="logout()">Logout</a></li>
       </ul>
@@ -211,10 +207,16 @@ if (!localStorage.getItem("loggedUser")) {
         Excel
     </button>
 
-    <button id="exportPDF" class="btn1">
-        <img src="https://cdn-icons-png.flaticon.com/512/337/337946.png" />
-        PDF
-    </button>
+    <select name="count" id="count">
+      <option value="allcalls" selected>Total Calls</option>
+      <option value="C">Closed</option>
+      <option value="P">Pending</option>
+      <option value="H">Hold</option>
+    </select>
+
+
+      <span id="countDisplay" style="font-weight:bold; margin-left:10px;"></span>
+
 
 </div>
 
@@ -243,6 +245,22 @@ document.addEventListener("DOMContentLoaded", () => {
   const problemForm = document.getElementById("problemForm");
   const solutionBox = document.getElementById("solutionBox");
   const displayOptions = document.querySelectorAll(".displayOption");
+  const marathiToEnglish = {
+    "केवायसी": "kyc",
+    "केवाय सी": "kyc",
+    "लोन": "loan",
+    "कर्ज": "loan",
+    "व्याज": "interest",
+    "आरटीजीएस": "rtgs",
+    "नेफ्ट": "neft",
+    "इमप्स": "imps",
+    "पासबुक": "passbook",
+    "स्टेटमेंट": "statement",
+    "चेक": "cheque",
+    "डेबिट": "debit",
+    "क्रेडिट": "credit",
+};
+
 
   let lastFilterData = {};
   let lastProblem = "";
@@ -335,7 +353,13 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      solutionBox.innerHTML = "<p>⏳ Searching... please wait.</p>";
+      solutionBox.innerHTML = `
+    <div class="loader-container">
+        <div class="hourglass"></div>
+        <span>Searching... please wait.</span>
+    </div>
+`;
+
 
       const response = await fetch(
         `http://localhost:8080/api/tickets/solution?${params.toString()}`,
@@ -427,15 +451,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     tickets.forEach((t, i) => {
 
-        let cmsLink = "-";
-        if (t.cms) {
-            const cleanId = t.cms.replace(/,/g, "").trim();
-            cmsLink = `
-                <a href="http://172.100.30.3:8080/apex/f?p=100:90:0::NO::P90_CALLID:${cleanId}"
-                   target="_blank" style="color:blue; font-weight:bold;">
-                   ${t.cms}
-                </a>`;
-        }
+      let cmsLink = "-";
+if (t.cms) {
+    const cleanId = t.cms.replace(/,/g, "").trim();
+    cmsLink = `
+        <a href="http://172.100.30.3:8080/apex/f?p=100:90:::::P90_CALLID:${cleanId}"
+           target="_blank" style="color:blue; font-weight:bold;">
+           ${t.cms}
+        </a>`;
+}
+
+
 
         html += `
             <tr class="ticket-row" id="ticket-${i}">
@@ -508,8 +534,20 @@ document.addEventListener("click", (e) => {
 
 function convertToJsDate(str) {
     if (!str) return null;
-    const p = str.split(/[- :]/); 
-    return new Date(`${p[2]}-${p[1]}-${p[0]}T${p[3] || "00"}:${p[4] || "00"}:${p[5] || "00"}`);
+
+    // split date + time
+    const [datePart, timePart] = str.split(" ");
+    const [dd, mm, yyyy] = datePart.split("-");
+    const [HH = "00", MM = "00", SS = "00"] = timePart ? timePart.split(":") : [];
+
+    return new Date(
+        Number(yyyy),
+        Number(mm) - 1,
+        Number(dd),
+        Number(HH),
+        Number(MM),
+        Number(SS)
+    );
 }
 
 document.addEventListener("click", (e) => {
@@ -528,6 +566,7 @@ document.addEventListener("click", (e) => {
 
     renderTickets(lastTickets, lastProblem);
 });
+
 
 
 
@@ -711,44 +750,12 @@ document.getElementById("exportExcel").addEventListener("click", () => {
 });
 
 
-// ============= EXPORT PDF =============
-document.getElementById("exportPDF").addEventListener("click", async () => {
-    const element = document.getElementById("solutionBox");
 
-    if (!element || element.innerHTML.trim().length === 0) {
-        alert("No data available to export!");
-        return;
-    }
-
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    const opt = {
-        margin: 5,
-        filename: "Support_Report.pdf",
-        image: { type: "jpeg", quality: 1 },
-        html2canvas: { 
-            scale: 3,
-            useCORS: true,
-            scrollY: 0, 
-            windowHeight: document.body.scrollHeight 
-        },
-        jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-    };
-
-    html2pdf().set(opt).from(element).save();
-});
 
 
 const element = document.getElementById("yourTableDiv");
 
-const opt = {
-  margin:       0.5,
-  filename:     'Support_Report.pdf',
-  image:        { type: 'jpeg', quality: 1 },
-  html2canvas:  { scale: 3, useCORS: true },
-  jsPDF:        { unit: 'pt', format: 'a4', orientation: 'landscape' }
-};
+
 
 
 // ==============================
@@ -776,6 +783,9 @@ dropdown.addEventListener("change", () => {
     renderTickets(filtered, lastProblem);
 });
 
+
+
+
 // ==============================
 //   HIGHLIGHT SEARCH WORDS
 
@@ -793,6 +803,46 @@ function highlightWords(text, search) {
 
     return highlighted;
 }
+
+
+
+// ==============================
+//    COUNT DROPDOWN FIX
+// ==============================
+const countDropdown = document.getElementById("count");
+const countDisplay = document.getElementById("countDisplay");
+
+countDropdown.addEventListener("change", () => {
+
+    let selected = countDropdown.value;
+    let filtered = [...lastTickets];  
+
+    if (selected === "C") {
+        filtered = lastTickets.filter(t => t.status === "C");
+    }
+    else if (selected === "P") {
+        filtered = lastTickets.filter(t => t.status === "P");
+    }
+    else if (selected === "H") {
+        filtered = lastTickets.filter(t => t.status === "H");
+    }
+    else {
+        filtered = lastTickets; // Total Calls
+    }
+
+    // Update count
+    countDisplay.textContent = `Count: ${filtered.length}`;
+
+    // Update table
+    renderTickets(filtered, lastProblem);
+    
+});
+
+
+
+
+
+// ==============================
 
 
 
@@ -824,6 +874,258 @@ function convertJsToBackendDate(dateStr, endOfDay = false) {
         ? `${dd}-${mm}-${yyyy} 23:59:59`
         : `${dd}-${mm}-${yyyy} 00:00:00`;
 }
+
+
+
+function marathiToRoman(str) {
+    const map = {
+        'अ':'a','आ':'aa','इ':'i','ई':'ee','उ':'u','ऊ':'oo','ए':'e','ओ':'o','औ':'au','ऐ':'ai',
+        'ा':'a','ि':'i','ी':'ee','ु':'u','ू':'oo','े':'e','ो':'o','ै':'ai','ौ':'au',
+
+        'क':'k','ख':'kh','ग':'g','घ':'gh','च':'ch','छ':'chh','ज':'j','झ':'jh',
+        'ट':'t','ठ':'th','ड':'d','ढ':'dh','ण':'n','त':'t','थ':'th','द':'d','ध':'dh','न':'n',
+        'प':'p','फ':'ph','ब':'b','भ':'bh','म':'m',
+        'य':'y','र':'r','ल':'l','व':'v',
+        'श':'sh','ष':'sh','स':'s','ह':'h',
+        'ळ':'l','क्ष':'ksh','ज्ञ':'gy'
+    };
+
+    return [...str].map(ch => map[ch] || ch).join("");
+}
+problemForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    let problemText = document.getElementById("problemInput").value.trim();
+    if (!problemText) return alert("Please enter your problem.");
+
+    let translated = problemText;
+
+    // STEP 1: Dictionary-based Marathi → English replacement
+    Object.keys(marathiToEnglish).forEach(word => {
+        if (translated.includes(word)) {
+            translated = translated.replace(
+                new RegExp(word, "gi"),
+                marathiToEnglish[word]
+            );
+        }
+    });
+
+    // STEP 2: If still contains Marathi characters → convert to Roman
+    if (/[ऀ-ॿ]/.test(translated)) {
+        translated = marathiToRoman(translated);
+    }
+
+    // STEP 3: FINAL AI Marathi → English translation for accuracy
+    const fullyTranslated = await translateMarathiToEnglish(translated);
+
+    console.log("Original Marathi:", problemText);
+    console.log("After Dict + Roman:", translated);
+    console.log("AI Final English:", fullyTranslated);
+
+    lastProblem = fullyTranslated;
+
+    const tempFilters = { ...lastFilterData, problem: fullyTranslated };
+
+    await fetchSolutions(fullyTranslated, tempFilters);
+});
+
+
+
+
+async function translateMarathiToEnglish(text) {
+  try {
+    const response = await axios.post(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: "Translate Marathi text to simple English for keyword searching." },
+          { role: "user", content: text }
+        ]
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer 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"
+        }
+      }
+    );
+
+    return response.data.choices[0].message.content.trim();
+
+  } catch (e) {
+    console.error("Translation failed:", e);
+    return text;
+  }
+}
+
+
+
+
+// ---------- Grammar correction on hover (copy/paste) ----------
+const grammarCache = new Map(); // cache original -> corrected
+const grammarPending = new Map(); // to avoid duplicate inflight requests
+
+// Replace with your real key
+const OPENAI_API_KEY = "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"; 
+
+// Debounce helper (ms)
+function debounce(fn, wait) {
+  let t;
+  return function(...args) {
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(this, args), wait);
+  };
+}
+
+// 1) function to call OpenAI (or fallback to returning original on error)
+async function correctGrammarAPI(text) {
+  // if cached, return
+  if (grammarCache.has(text)) return grammarCache.get(text);
+
+  // If already pending, await that promise
+  if (grammarPending.has(text)) return grammarPending.get(text);
+
+  const payloadPromise = (async () => {
+    try {
+      // Minimal prompt: ask to correct grammar & produce short concise sentence/excerpt
+      const prompt = `Correct the grammar and make concise English suitable for a search query or short support summary. 
+Respond only with the corrected text (no explanation). Input: """${text}"""`;
+
+      const resp = await axios.post(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: "You are a concise grammar correction tool." },
+            { role: "user", content: prompt }
+          ],
+          max_tokens: 120,
+          temperature: 0.0
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${OPENAI_API_KEY}`
+          },
+          timeout: 20000
+        }
+      );
+
+      const corrected = (resp?.data?.choices?.[0]?.message?.content || "").trim();
+      const final = corrected || text;
+      grammarCache.set(text, final);
+      return final;
+
+    } catch (err) {
+      console.error("Grammar API failed:", err);
+      // fallback: return original text
+      grammarCache.set(text, text);
+      return text;
+    } finally {
+      grammarPending.delete(text);
+    }
+  })();
+
+  grammarPending.set(text, payloadPromise);
+  return payloadPromise;
+}
+
+// 2) create tooltip container (only one)
+let grammarTooltip = document.querySelector(".grammar-tooltip");
+if (!grammarTooltip) {
+  grammarTooltip = document.createElement("div");
+  grammarTooltip.className = "grammar-tooltip";
+  grammarTooltip.innerHTML = `<div class="meta"><strong>Corrected:</strong></div><div class="body"></div>`;
+  document.body.appendChild(grammarTooltip);
+}
+
+// Show tooltip near an element
+function showTooltipForElement(targetEl, htmlContent) {
+  const rect = targetEl.getBoundingClientRect();
+  const tooltip = grammarTooltip;
+  tooltip.querySelector(".body").innerHTML = htmlContent;
+  tooltip.style.display = "block";
+
+  // position: prefer above, if not enough space, place below
+  const margin = 8;
+  const tooltipRect = tooltip.getBoundingClientRect();
+  const aboveTop = rect.top - tooltipRect.height - margin;
+  if (aboveTop > 8) {
+    tooltip.style.left = `${Math.min(window.innerWidth - tooltipRect.width - 8, rect.left)}px`;
+    tooltip.style.top = `${window.scrollY + aboveTop}px`;
+  } else {
+    // place below
+    tooltip.style.left = `${Math.min(window.innerWidth - tooltipRect.width - 8, rect.left)}px`;
+    tooltip.style.top = `${window.scrollY + rect.bottom + margin}px`;
+  }
+}
+
+// Hide tooltip
+function hideTooltip() {
+  grammarTooltip.style.display = "none";
+}
+
+// 3) Event delegation: watch mouseenter on .clamp3 cells (problem/solution content)
+let hoverTimer = null;
+const handleMouseEnter = debounce(async (evtTarget) => {
+  if (!evtTarget) return;
+  const text = evtTarget.textContent?.trim();
+  if (!text) return;
+
+  // If cached, show immediately
+  if (grammarCache.has(text)) {
+    const corrected = grammarCache.get(text);
+    showTooltipForElement(evtTarget, `<div>${escapeHtml(corrected)}</div>`);
+    return;
+  }
+
+  // Show spinner while waiting
+  showTooltipForElement(evtTarget, `<div><span class="spinner"></span> Checking grammar...</div>`);
+
+  // Call API
+  const corrected = await correctGrammarAPI(text);
+
+  // Show corrected text
+  showTooltipForElement(evtTarget, `<div>${escapeHtml(corrected)}</div>`);
+}, 250);
+
+// small HTML escape for safety
+function escapeHtml(str) {
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+// attach listeners using event delegation
+document.addEventListener("mouseover", (e) => {
+  const el = e.target.closest && e.target.closest(".clamp3");
+  if (!el) return;
+
+  // allow only active row
+  const row = el.closest(".ticket-row");
+  if (!row || !row.classList.contains("ticket-active")) return;
+
+  handleMouseEnter(el);
+});
+
+
+document.addEventListener("mouseout", (e) => {
+  const leaveEl = e.target.closest && e.target.closest(".clamp3");
+  // hide tooltip when pointer leaves that clamp3 element
+  if (leaveEl) {
+    hideTooltip();
+  }
+});
+
+
+
+
+
+
 
 
 
