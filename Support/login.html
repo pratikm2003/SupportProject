@@ -93,26 +93,24 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
     const password = document.getElementById("password").value.trim();
 
     const res = await fetch("http://115.246.36.27:8080/project-0.0.1-SNAPSHOT/api/users/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password })
-});
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+    });
 
     const data = await res.json();
 
     if (data.success) {
-
-        // ⭐ Save username globally
         localStorage.setItem("loggedUser", username);
-
-       
         window.location.href = "home.html";
-    } 
+    }
 });
+
 </script>
 
 </body>
 </html>
+
 
 
 
